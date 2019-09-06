@@ -6,10 +6,11 @@ ROWS = [ 'ABC', 'DEF', 'GHI' ]
 COLS = [ 'ADG', 'BEH', 'CFI' ]
 
 def solve(grid)
-  puts "#{grid}"
+  #puts "#{grid}"
   g = Marshal.load(Marshal.dump(grid))
   if(solved?(g))
     puts 'solved'
+    puts "#{g}"
     return g
   end
 
@@ -21,11 +22,12 @@ def solve(grid)
   ssq = bsq[1].find{|k, v| min_predicate.call(v)} unless bsq.nil?
   values_available = ssq[1]
   cell = "#{bsq.first}#{ssq.first}"
-  puts "We picked #{cell}: #{values_available}"
+  #puts "We picked #{cell}: #{values_available}"
 
   # pick a value for the square
   values_available.chars.each do |v|
     next if invalid?(g, cell, v)
+    puts "Proceeding with value #{v} for #{cell}"
     g[bsq.first][ssq.first] = v
 
     return g unless solve(g).nil?
@@ -35,7 +37,7 @@ def solve(grid)
 end
 
 def invalid?(grid, cell, value)
-  puts "Trying value #{value} for #{cell}"
+  puts "invalid?"
   bsq, row, col = cell.chars
 
   row_neighbors = ROWS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
@@ -73,7 +75,7 @@ def parse(k, v)
 end
 
 def init
-  JSON.parse(File.read('grid.json')) 
+  JSON.parse(File.read('grid2.json')) 
     .map{|k, v| parse(k, v)}.reduce(:merge)
 end
 

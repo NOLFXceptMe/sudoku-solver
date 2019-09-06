@@ -5,8 +5,7 @@ require 'json'
 ROWS = [ 'ABC', 'DEF', 'GHI' ]
 COLS = [ 'ADG', 'BEH', 'CFI' ]
 
-def solve(grid)
-  g = Marshal.load(Marshal.dump(grid))
+def solve(g)
   if(solved?(g))
     puts 'solved'
     puts "#{g}"
@@ -21,15 +20,15 @@ def solve(grid)
   ssq = bsq[1].find{|k, v| min_predicate.call(v)} unless bsq.nil?
   values_available = ssq[1]
   cell = "#{bsq.first}#{ssq.first}"
-  puts "We picked #{cell}: #{values_available}"
+  #puts "We picked #{cell}: #{values_available}"
 
   # pick a value for the square
   values_available.chars.each do |v|
-    next if invalid?(g, cell, v)
-    puts "Proceeding with value #{v} for #{cell}"
     g2 = Marshal.load(Marshal.dump(g))
     g2[bsq.first][ssq.first] = v
-    remove_v(g2, cell, v)
+    next if remove_v(g2, cell, v).nil?
+
+    puts "Proceeding with value #{v} for #{cell}"
 
     return g2 unless solve(g2).nil?
   end
@@ -38,6 +37,7 @@ def solve(grid)
 end
 
 def invalid?(grid, cell, value)
+  puts "invalid?"
   bsq, row, col = cell.chars
 
   row_neighbors = ROWS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
@@ -61,22 +61,38 @@ def invalid?(grid, cell, value)
 end
 
 def remove_v(grid, cell, value)
+  puts "remove_v"
   bsq, row, col = cell.chars
 
   row_neighbors = ROWS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
-  grid.select{ |k, v| row_neighbors.include?(k) }.each do |k, v| 
+  grid.select { |k, v| row_neighbors.include?(k) }.each do |k, v| 
     v.select { |k1, v1| k1[0].eql?(row) && v1.length != 1 }
-      .each { |k2, v2| grid[k][k2] = v2.gsub(value, '') }
+      .each do |k2, v2| 
+      v2new = v2.gsub(value, '')
+      return nil if invalid?(grid, "#{k}#{k2}", v2new)
+      grid[k][k2] = v2new
+    end
   end
 
   col_neighbors = COLS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
-  grid.select{ |k, v| col_neighbors.include?(k) }
-    .each{ |k, v| v.select { |k1, v1| k1[1].eql?(col) && v1.length != 1 }
-    .each { |k2, v2| grid[k][k2] = v2.gsub(value, '') }}
+  grid.select { |k, v| col_neighbors.include?(k) } .each do |k, v| 
+    v.select { |k1, v1| k1[1].eql?(col) && v1.length != 1 }
+      .each do |k2, v2| 
+      v2new = v2.gsub(value, '')
+      return nil if invalid?(grid, "#{k}#{k2}", v2new)
+      grid[k][k2] = v2new
+    end
+  end
 
-  cell_values = grid[bsq]
-    .select { |k,v| v.length != 1 }
-    .each { |k, v| grid[bsq][k] = v.gsub(value, '')}
+  cell_values = grid[bsq].select { |k,v| v.length != 1 }.each do |k, v| 
+    vnew = v.gsub(value, '')
+    return nil if invalid?(grid, "#{bsq}#{k}", vnew)
+    grid[bsq][k] = vnew
+  end
+
+  return nil if invalid?(grid, cell, value)
+
+  return true
 end
 
 def solved?(g)
@@ -94,7 +110,7 @@ def parse(k, v)
 end
 
 def init
-  JSON.parse(File.read('grid.json')) 
+  JSON.parse(File.read('grid2.json')) 
     .map{|k, v| parse(k, v)}.reduce(:merge)
 end
 
