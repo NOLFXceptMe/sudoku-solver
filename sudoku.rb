@@ -6,11 +6,9 @@ ROWS = [ 'ABC', 'DEF', 'GHI' ]
 COLS = [ 'ADG', 'BEH', 'CFI' ]
 
 def solve(grid)
-  #puts "#{grid}"
   g = Marshal.load(Marshal.dump(grid))
   if(solved?(g))
-    puts 'solved'
-    puts "#{g}"
+    puts write(g)
     return g
   end
 
@@ -27,7 +25,7 @@ def solve(grid)
   # pick a value for the square
   values_available.chars.each do |v|
     next if invalid?(g, cell, v)
-    puts "Proceeding with value #{v} for #{cell}"
+    #puts "Proceeding with value #{v} for #{cell}"
     g[bsq.first][ssq.first] = v
 
     return g unless solve(g).nil?
@@ -37,8 +35,9 @@ def solve(grid)
 end
 
 def invalid?(grid, cell, value)
-  puts "invalid?"
   bsq, row, col = cell.chars
+  return if value.length != 1
+  #puts "invalid?"
 
   row_neighbors = ROWS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
   row_values = grid.select{ |k, v| row_neighbors.include?(k) }
@@ -74,10 +73,13 @@ def parse(k, v)
   return { k => cells.zip(values).to_h }
 end
 
+def write(g)
+  g.map { |k, v| [k, v.values.join] }.to_h
+end
+
 def init
-  JSON.parse(File.read('grid2.json')) 
+  JSON.parse(File.read(ARGV[0]))
     .map{|k, v| parse(k, v)}.reduce(:merge)
 end
 
-grid = init
-solve(grid)
+solve(init)
