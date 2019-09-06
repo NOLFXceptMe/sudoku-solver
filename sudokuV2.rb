@@ -24,7 +24,6 @@ def solve(g)
   # pick a value for the square
   values_available.chars.each do |v|
     g2 = Marshal.load(Marshal.dump(g))
-    g2[bsq.first][ssq.first] = v
     next if remove_v(g2, cell, v).nil?
 
     puts "Proceeding with value #{v} for #{cell}"
@@ -36,50 +35,49 @@ def solve(g)
 end
 
 def invalid?(grid, cell, value)
-  puts "invalid?"
   bsq, row, col = cell.chars
   grid[bsq]["#{row}#{col}"] = value
 
-  row_neighbors = ROWS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
-  col_neighbors = COLS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
+  return false if value.length != 1
+
+  puts "invalid?"
 
   return (
-    grid.slice(*row_neighbors)
-    .map{ |k, v| v.select { |k1, v1| k1[0].eql?(row) && v1.length == 1 }}
-    .map(&:values)
-    .any? { |vs| vs.include?(value) } ||
+    row_neighbors(bsq).any? do |r|
+      grid[r].any? { |k, v| k[0].eql?(row) && v.length == 1 && v.include?(value) }
+    end ||
 
-    grid.slice(*col_neighbors)
-    .map{ |k, v| v.select { |k1, v1| k1[1].eql?(col) && v1.length == 1 }}
-    .map(&:values)
-    .any? { |vs| vs.include?(value) }
+    col_neighbors(bsq).any? do |c|
+      grid[c].any? { |k, v| k[1].eql?(col) && v.length == 1 && v.include?(value) }
+    end
   )
 end
 
 def remove_v(grid, cell, value)
   puts "remove_v"
+
   bsq, row, col = cell.chars
 
   return if invalid?(grid, cell, value)
+  return if grid[bsq].any? { |k, v| v.length != 1 && invalid?(grid, "#{bsq}#{k}", v.gsub(value, '')) }
 
-  row_neighbors = ROWS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
-  col_neighbors = COLS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
-
-  return if grid.slice(*row_neighbors).any? do |k, v| 
-    v.select { |k1, v1| k1[0].eql?(row) && v1.length != 1 }
-      .any? { |k2, v2| invalid?(grid, "#{k}#{k2}", v2.gsub(value, '')) }
+  return if row_neighbors(bsq).any? do |r|
+    grid[r].any? { |k, v| k[0].eql?(row) && v.length != 1 && invalid?(grid, "#{r}#{k}", v.gsub(value, '')) }
   end
 
-  return if grid.slice(*col_neighbors).any? do |k, v| 
-    v.select { |k1, v1| k1[1].eql?(col) && v1.length != 1 }
-      .any? { |k2, v2| invalid?(grid, "#{k}#{k2}", v2.gsub(value, '')) }
-  end
-
-  return if grid[bsq].select { |k,v| v.length != 1 }.any? do |k, v|
-    invalid?(grid, "#{bsq}#{k}", v.gsub(value, ''))
+  return if col_neighbors(bsq).any? do |c|
+    grid[c].any? { |k, v| k[1].eql?(col) && v.length != 1 && invalid?(grid, "#{c}#{k}", v.gsub(value, '')) }
   end
 
   return true
+end
+
+def row_neighbors(bsq)
+  ROWS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
+end
+
+def col_neighbors(bsq)
+  COLS.find{|s| s.include?(bsq)}.gsub(bsq, '').chars
 end
 
 def solved?(g)
