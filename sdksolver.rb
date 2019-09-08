@@ -12,7 +12,7 @@ def solve(g)
 
   # pick an unsolved square
   # pick square with least values possible
-  min_length = g.values.map(&:values).map(&:flatten).flatten.reject{|v| v.length == 1}.map(&:length).min
+  min_length = GRID.map { |(r, c)| g[r][c].length }.reject { |v| v == 1}.min
   r, c = GRID.find { |(r, c)| g[r][c].length == min_length }
   log "We choose #{r}#{c}"
 
@@ -33,6 +33,13 @@ def process(grid, row, col, value)
     return if invalid?(g, row, col)
 
     return if UN[[row, col]]
+      .reject { |r, c| g[r][c].length == 1 }
+      .any? { |r, c|
+      g[r][c] = g[r][c].gsub(value, '')
+      invalid?(g, r, c)
+    }
+
+    return if RN[row]
       .reject { |s| s.eql?([row, col]) }
       .reject { |r, c| g[r][c].length == 1 }
       .any? { |r, c|
@@ -40,14 +47,8 @@ def process(grid, row, col, value)
       invalid?(g, r, c)
     }
 
-    return if RN[[row, col]]
-      .reject { |r, c| g[r][c].length == 1 }
-      .any? { |r, c|
-      g[r][c] = g[r][c].gsub(value, '')
-      invalid?(g, r, c)
-    }
-
-    return if CN[[row, col]]
+    return if CN[col]
+      .reject { |s| s.eql?([row, col]) }
       .reject { |r, c| g[r][c].length == 1 }
       .any? { |r, c|
       g[r][c] = g[r][c].gsub(value, '')
@@ -65,21 +66,16 @@ def invalid?(grid, row, col)
   return false if value.length != 1
 
   return (
-    RN[[row, col]].any? { |r, c| grid[r][c].eql?(value) } ||
-    CN[[row, col]].any? { |r, c| grid[r][c].eql?(value) }
+    RN[row]
+    .any? { |r, c| c != col && grid[r][c].eql?(value) } ||
+
+    CN[col]
+    .any? { |r, c| r != row && grid[r][c].eql?(value) }
   )
 end
 
-def row_neighbors(r, c)
-  COLS.map { |col| [r, col] }.reject { |u| UN[[r, c]].include?(u) }
-end
-
-def col_neighbors(r, c)
-  ROWS.map { |row| [row, c] }.reject { |u| UN[[r, c]].include?(u) }
-end
-
 def solved?(g)
-  !g.find {|k, v| v.values.any?{|a| a.length != 1}}
+  !g.any? {|k, v| v.values.any?{|a| a.length != 1}}
 end
 
 def prepare(grid)
@@ -88,9 +84,7 @@ def prepare(grid)
     unit_values = cells.map { |r, c| grid[r][c] }.join.delete('.')
     possibilites = VALUES.delete(unit_values)
 
-    cells
-      .select {|r, c| grid[r][c] == '.' }
-      .each { |r, c| grid[r][c] = possibilites }
+    cells.each { |r, c| grid[r][c] = possibilites if grid[r][c] == '.' }
   }
 
   grid
@@ -115,17 +109,14 @@ GRID = ROWS.product(COLS)
 
 VALUES = (1..9).map(&:to_s).join
 
-ROW_NEIGHBORS = [ 'ABC', 'DEF', 'GHI']
-COL_NEIGHBORS = [ '123', '456', '789']
-UNITS = ROW_NEIGHBORS.product(COL_NEIGHBORS)
-
+UNITS = ['ABC', 'DEF', 'GHI'].product([ '123', '456', '789'])
 UN = UNITS.map { |(r, c)|
   cells = r.chars.product(c.chars)
-  cells.map { |cell| [cell, cells] }
+  cells.map { |cell| [cell, cells.reject { |s| s.eql?(cell) }] }
 }.map(&:to_h).reduce(&:merge)
 
-RN = GRID.map { |(r, c)| [[r, c], row_neighbors(r, c)] }.to_h
-CN = GRID.map { |(r, c)| [[r, c], col_neighbors(r, c)] }.to_h
+RN = ROWS.map { |r| [r, COLS.map { |c| [r, c] }] }.to_h
+CN = COLS.map { |c| [c, ROWS.map { |r| [r, c] }] }.to_h
 
 DEBUG = false
 
