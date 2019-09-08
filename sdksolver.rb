@@ -30,47 +30,34 @@ def process(grid, row, col, value)
     log "Trying #{row}#{col} : #{value}"
 
     g[row][col] = value
-    return if invalid?(g, row, col)
-
-    return if UN[[row, col]]
-      .reject { |r, c| g[r][c].length == 1 }
-      .any? { |r, c|
-      g[r][c] = g[r][c].gsub(value, '')
-      invalid?(g, r, c)
-    }
-
-    return if RN[row]
-      .reject { |s| s.eql?([row, col]) }
-      .reject { |r, c| g[r][c].length == 1 }
-      .any? { |r, c|
-      g[r][c] = g[r][c].gsub(value, '')
-      invalid?(g, r, c)
-    }
-
-    return if CN[col]
-      .reject { |s| s.eql?([row, col]) }
-      .reject { |r, c| g[r][c].length == 1 }
-      .any? { |r, c|
-      g[r][c] = g[r][c].gsub(value, '')
-      invalid?(g, r, c)
-    }
+    return if (
+      invalid?(g, row, col) ||
+      UN[[row, col]].any? { |r, c| invalid_remove?(g, r, c, value) }
+    )
 
     log "Proceeding with value #{value} for #{row}#{col}"
 
     solve(g)
 end
 
+def invalid_remove?(g, r, c, value)
+  return false if g[r][c].length == 1
+
+  g[r][c] = g[r][c].delete(value)
+  return invalid?(g, r, c)
+end
+
 def invalid?(grid, row, col)
   value = grid[row][col]
 
-  return false if value.length != 1
-
-  return (
+  value.length == 1 && (
     RN[row]
-    .any? { |r, c| c != col && grid[r][c].eql?(value) } ||
+    .reject { |r, c| c.eql?(col) }
+    .any? { |r, c| grid[r][c].eql?(value) || invalid_remove?(grid, r, c, value) } ||
 
-    CN[col]
-    .any? { |r, c| r != row && grid[r][c].eql?(value) }
+  CN[col]
+    .reject { |r, c| r.eql?(row) }
+    .any? { |r, c| grid[r][c].eql?(value) || invalid_remove?(grid, r, c, value) }
   )
 end
 
@@ -81,17 +68,32 @@ end
 def prepare(grid)
   UNITS.each { |urows, ucols|
     cells = urows.chars.product(ucols.chars)
-    unit_values = cells.map { |r, c| grid[r][c] }.join.delete('.')
-    possibilites = VALUES.delete(unit_values)
+    values = cells.map { |r, c| grid[r][c] }.join.delete('.')
 
-    cells.each { |r, c| grid[r][c] = possibilites if grid[r][c] == '.' }
+    cells.each { |r, c| grid[r][c] = VALUES.delete(values) if grid[r][c] == '.' }
   }
+
+  ROWS.each { |r|
+    values = RN[r].map { |r, c| grid[r][c] if grid[r][c].length == 1 && grid[r][c] != '.' }.join
+
+    RN[r].each { |r, c| grid[r][c].delete!(values) if grid[r][c].length != 1 }
+  }
+
+  # this breaks correctness but why? :(
+  COLS.each { |c|
+    values = CN[c].map { |r, c| grid[r][c] if grid[r][c].length == 1 && grid[r][c] != '.' }.join
+
+    #CN[c].each { |r, c|  grid[r][c].delete!(values) if grid[r][c].length != 1  }
+  }
+
+  log "Prepared grid:"
+  log "#{write(grid)}"
 
   grid
 end
 
 def write(grid)
-  grid.map { |k, v| v.values.join('|')}.join("\n")
+  grid.map { |k, v| v.values.join('|')}.join("\n") unless grid.nil?
 end
 
 def parse(file)
@@ -112,7 +114,7 @@ VALUES = (1..9).map(&:to_s).join
 UNITS = ['ABC', 'DEF', 'GHI'].product([ '123', '456', '789'])
 UN = UNITS.map { |(r, c)|
   cells = r.chars.product(c.chars)
-  cells.map { |cell| [cell, cells.reject { |s| s.eql?(cell) }] }
+  cells.map { |cell| [cell, cells.reject { |s| s.eql?([r, c]) }] }
 }.map(&:to_h).reduce(&:merge)
 
 RN = ROWS.map { |r| [r, COLS.map { |c| [r, c] }] }.to_h
