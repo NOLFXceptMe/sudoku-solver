@@ -80,11 +80,10 @@ def prepare(grid)
     RN[r].each { |r, c| grid[r][c].delete!(values) if grid[r][c].length != 1 }
   }
 
-  # this breaks correctness but why? :(
   COLS.each { |c|
     values = CN[c].map { |r, c| grid[r][c] if grid[r][c].length == 1 && grid[r][c] != '.' }.join
 
-    #CN[c].each { |r, c|  grid[r][c].delete!(values) if grid[r][c].length != 1  }
+    CN[c].each { |r, c|  grid[r][c].delete!(values) if grid[r][c].length != 1  }
   }
 
   log "Prepared grid:"
