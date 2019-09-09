@@ -54,7 +54,7 @@ def invalid?(grid, row, col)
   )
 end
 
-# Is removing 'v' from g[r][c] an invalid move
+# Is removing 'v' from g[r][c] an invalid (re)move?
 def invalid_remove?(g, r, c, v)
   return false if g[r][c].length == 1
 
@@ -75,13 +75,13 @@ def prepare(grid)
   }
 
   ROWS.each { |r|
-    values = RN[r].map { |r, c| grid[r][c] if grid[r][c].length == 1 && grid[r][c] != '.' }.join
+    values = RN[r].map { |r, c| grid[r][c] if grid[r][c].length == 1 }.join
 
     RN[r].each { |r, c| grid[r][c].delete!(values) if grid[r][c].length != 1 }
   }
 
   COLS.each { |c|
-    values = CN[c].map { |r, c| grid[r][c] if grid[r][c].length == 1 && grid[r][c] != '.' }.join
+    values = CN[c].map { |r, c| grid[r][c] if grid[r][c].length == 1}.join
 
     CN[c].each { |r, c|  grid[r][c].delete!(values) if grid[r][c].length != 1  }
   }
