@@ -25,32 +25,25 @@ def solve(g)
   return nil
 end
 
+# explore possibility of grid[row][col] = value
 def process(grid, row, col, value)
     g = Marshal.load(Marshal.dump(grid))
     log "Trying #{row}#{col} : #{value}"
 
     g[row][col] = value
-    return if (
-      invalid?(g, row, col) ||
-      UN[[row, col]].any? { |r, c| invalid_remove?(g, r, c, value) }
-    )
+    return if invalid?(g, row, col)
 
     log "Proceeding with value #{value} for #{row}#{col}"
 
     solve(g)
 end
 
-def invalid_remove?(g, r, c, value)
-  return false if g[r][c].length == 1
-
-  g[r][c] = g[r][c].delete(value)
-  return invalid?(g, r, c)
-end
-
+# Is setting grid[row][col] an invalid move?
 def invalid?(grid, row, col)
   value = grid[row][col]
 
   value.length == 1 && (
+    UN[[row, col]].any? { |r, c| invalid_remove?(grid, r, c, value) } ||
     RN[row]
     .reject { |r, c| c.eql?(col) }
     .any? { |r, c| grid[r][c].eql?(value) || invalid_remove?(grid, r, c, value) } ||
@@ -59,6 +52,14 @@ def invalid?(grid, row, col)
     .reject { |r, c| r.eql?(row) }
     .any? { |r, c| grid[r][c].eql?(value) || invalid_remove?(grid, r, c, value) }
   )
+end
+
+# Is removing 'v' from g[r][c] an invalid move
+def invalid_remove?(g, r, c, v)
+  return false if g[r][c].length == 1
+
+  g[r][c] = g[r][c].delete(v)
+  return invalid?(g, r, c)
 end
 
 def solved?(g)
